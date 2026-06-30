@@ -3,8 +3,9 @@ import './App.css';
 import Home from './pages/Home';
 import Education from './pages/Education';
 import Jobs from './pages/Jobs';
+import Region from './pages/Region';
 import Profile from './pages/Profile';
-import { Home as HomeIcon, GraduationCap, Briefcase, User, Link2 } from 'lucide-react';
+import { Home as HomeIcon, GraduationCap, Briefcase, MapPin, User, Link2 } from 'lucide-react';
 
 function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
@@ -17,6 +18,8 @@ function App() {
         return <Education />;
       case 'jobs':
         return <Jobs />;
+      case 'region':
+        return <Region />;
       case 'profile':
         return <Profile />;
       default:
@@ -49,14 +52,21 @@ function App() {
               <GraduationCap size={18} />
               <span>교육</span>
             </button>
-            <button 
+            <button
               className={`nav-item ${activeTab === 'jobs' ? 'active' : ''}`}
               onClick={() => setActiveTab('jobs')}
             >
               <Briefcase size={18} />
               <span>일자리</span>
             </button>
-            <button 
+            <button
+              className={`nav-item ${activeTab === 'region' ? 'active' : ''}`}
+              onClick={() => setActiveTab('region')}
+            >
+              <MapPin size={18} />
+              <span>지역</span>
+            </button>
+            <button
               className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
               onClick={() => setActiveTab('profile')}
             >
