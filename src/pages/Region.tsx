@@ -16,9 +16,9 @@ interface RegionInfo {
 const regionData: Record<RegionKey, RegionInfo> = {
   고양: {
     description: '경기 북부의 중심 도시 고양시의 중장년 취업·교육 지원 정보를 안내합니다.',
-    centerName: '고양시 중장년 일자리 지원센터',
-    address: '경기도 고양시 일산동구 중앙로 1305',
-    phone: '031-909-9000',
+    centerName: '고양상공회의소 중장년내일센터',
+    address: '경기도 고양시 일산동구 고봉로 32-16, 고양고용복지+센터 1층',
+    phone: '031-901-9197',
     hours: '평일 09:00 ~ 18:00',
     programs: [
       '스마트폰 활용 및 디지털 기초 교육 (무료)',
@@ -35,9 +35,9 @@ const regionData: Record<RegionKey, RegionInfo> = {
   },
   파주: {
     description: '통일의 관문 파주시의 중장년 취업·교육 지원 정보를 안내합니다.',
-    centerName: '파주시 중장년 취업지원센터',
-    address: '경기도 파주시 금릉역로 50',
-    phone: '031-940-4800',
+    centerName: '파주상공회의소 중장년내일센터',
+    address: '파주시 중앙로328 MH타워8층(파주고용복지플러스센터 내)',
+    phone: '031-8071-4245',
     hours: '평일 09:00 ~ 17:30',
     programs: [
       '귀농·귀촌 실습 교육 (국비지원)',
