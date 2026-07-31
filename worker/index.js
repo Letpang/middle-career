@@ -260,8 +260,8 @@ function normalizeJob(raw, index) {
     findValueUnderSection(raw, /compan|corp|co(?:_|$)/i, ['name', 'coNm']) ||
     findValueByKeys(raw, ['coNm', 'company']);
   const location =
-    findValueUnderSection(raw, /region|area|work[_]?place/i, ['name']) ||
-    findValueByKeys(raw, ['regionNm', 'workRegion']);
+    findValueByKeys(raw, ['region', 'regionNm', 'workRegion', 'basicAddr']) ||
+    findValueUnderSection(raw, /region|area|work[_]?place/i, ['name']);
   const salaryType = findValueByKeys(raw, ['salTpNm', 'wageTpNm']);
   const salaryAmount = findValueByKeys(raw, ['sal', 'wage']);
   const education = findValueByKeys(raw, ['minEdubg', 'minEdubgNm']);
