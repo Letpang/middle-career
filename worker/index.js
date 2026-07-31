@@ -43,51 +43,48 @@ async function handleJobs(url, env) {
   const startPage = clampNumber(url.searchParams.get('startPage'), 1, 1000, 1);
   const keyword = url.searchParams.get('keyword') || '';
   // regionKeyword: "고양", "파주" 처럼 지역명으로 좁혀서 보고 싶을 때 사용.
-  // 고용24 API 자체는 지역을 코드로만 필터링할 수 있어서(코드표가 필요),
-  // 대신 지역명을 keyword로 검색한 뒤, 실제 응답의 근무지역(region) 텍스트에
-  // 그 지역명이 포함된 공고만 한 번 더 걸러내는 방식으로 처리합니다.
   const regionKeyword = url.searchParams.get('regionKeyword') || '';
-
-  const fetchDisplay = regionKeyword ? 100 : display;
-
-  const apiUrl = new URL(WORK24_LIST_URL);
-  apiUrl.searchParams.set('authKey', authKey);
-  apiUrl.searchParams.set('callTp', 'L');
-  apiUrl.searchParams.set('returnType', 'XML');
-  apiUrl.searchParams.set('startPage', String(startPage));
-  apiUrl.searchParams.set('display', String(fetchDisplay));
-  if (keyword) apiUrl.searchParams.set('keyword', keyword);
-  else if (regionKeyword) apiUrl.searchParams.set('keyword', regionKeyword);
+  const debug = url.searchParams.get('debug') === '1';
 
   try {
-    const upstream = await fetch(apiUrl.toString(), {
-      headers: { Accept: 'application/xml, text/xml' },
-    });
-    const rawText = await upstream.text();
+    if (regionKeyword) {
+      // 고용24 API의 keyword 검색은 "채용 제목"만 뒤지기 때문에, 제목에 지역명이
+      // 안 들어간 공고(대부분)는 keyword 검색으론 못 찾습니다. 그래서 최신 공고를
+      // 여러 페이지(최대 500건) 가져와서, 실제 근무지역(region) 값에 해당 지역명이
+      // 들어있는 공고를 직접 찾아내는 방식으로 처리합니다.
+      const MAX_PAGES = 5;
+      const PAGE_SIZE = 100;
+      const matched = [];
 
-    if (!upstream.ok) {
+      for (let page = 1; page <= MAX_PAGES && matched.length < display; page++) {
+        const rawText = await fetchWork24Raw(authKey, { startPage: page, display: PAGE_SIZE });
+        const parsed = parseWork24Jobs(rawText);
+        if (parsed.error) {
+          return jsonResponse({ total: 0, items: [], error: parsed.error }, 200);
+        }
+        for (const job of parsed.items) {
+          if (job.location.includes(regionKeyword)) matched.push(job);
+        }
+      }
+
       return jsonResponse(
-        { error: `고용24 API 응답 오류 (HTTP ${upstream.status})`, total: 0, items: [] },
-        502,
+        { total: matched.length, items: matched.slice(0, display) },
+        200,
+        { 'Cache-Control': 'public, max-age=300' },
       );
     }
 
+    const rawText = await fetchWork24Raw(authKey, { startPage, display, keyword });
+
     // 진단용: ?debug=1 을 붙이면 고용24가 실제로 준 원본 XML을 그대로 보여줍니다.
-    // (필드 이름을 정확히 맞추기 위한 임시 확인용 — 나중에 지워도 됩니다)
-    if (url.searchParams.get('debug') === '1') {
+    if (debug) {
       return new Response(rawText, {
         status: 200,
         headers: { 'Content-Type': 'text/plain; charset=utf-8' },
       });
     }
 
-    let result = parseWork24Jobs(rawText);
-
-    if (regionKeyword && !result.error) {
-      const filtered = result.items.filter((job) => job.location.includes(regionKeyword));
-      result = { total: filtered.length, items: filtered.slice(0, display) };
-    }
-
+    const result = parseWork24Jobs(rawText);
     return jsonResponse(result, 200, { 'Cache-Control': 'public, max-age=300' });
   } catch (err) {
     return jsonResponse(
@@ -95,6 +92,27 @@ async function handleJobs(url, env) {
       502,
     );
   }
+}
+
+async function fetchWork24Raw(authKey, { startPage, display, keyword }) {
+  const apiUrl = new URL(WORK24_LIST_URL);
+  apiUrl.searchParams.set('authKey', authKey);
+  apiUrl.searchParams.set('callTp', 'L');
+  apiUrl.searchParams.set('returnType', 'XML');
+  apiUrl.searchParams.set('startPage', String(startPage));
+  apiUrl.searchParams.set('display', String(display));
+  if (keyword) apiUrl.searchParams.set('keyword', keyword);
+
+  const upstream = await fetch(apiUrl.toString(), {
+    headers: { Accept: 'application/xml, text/xml' },
+  });
+  const text = await upstream.text();
+
+  if (!upstream.ok) {
+    throw new Error(`고용24 API 응답 오류 (HTTP ${upstream.status})`);
+  }
+
+  return text;
 }
 
 function clampNumber(value, min, max, fallback) {
