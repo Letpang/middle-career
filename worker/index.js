@@ -70,7 +70,7 @@ async function handleJobs(url, env) {
       return jsonResponse(
         { total: matched.length, items: matched.slice(0, display) },
         200,
-        { 'Cache-Control': 'public, max-age=300' },
+        { 'Cache-Control': 'public, max-age=20' },
       );
     }
 
@@ -85,7 +85,7 @@ async function handleJobs(url, env) {
     }
 
     const result = parseWork24Jobs(rawText);
-    return jsonResponse(result, 200, { 'Cache-Control': 'public, max-age=300' });
+    return jsonResponse(result, 200, { 'Cache-Control': 'public, max-age=20' });
   } catch (err) {
     return jsonResponse(
       { error: '고용24 API 호출 중 오류가 발생했습니다.', detail: String(err), total: 0, items: [] },
@@ -192,10 +192,13 @@ function parseXmlToNode(xml) {
 }
 
 function decodeEntities(str) {
+  // 고용24 응답 중 일부는 &(앰퍼샌드)가 두 번 이스케이프되어 "&amp;lt;" 처럼
+  // 오는 경우가 있어서, &amp; 를 먼저 풀고 나서 나머지 기호를 풀어야
+  // "&lt;부천고강동..." 처럼 안 풀린 채로 남는 걸 방지할 수 있습니다.
   return str
+    .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'");
 }
