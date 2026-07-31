@@ -64,6 +64,15 @@ async function handleJobs(url, env) {
       );
     }
 
+    // 진단용: ?debug=1 을 붙이면 고용24가 실제로 준 원본 XML을 그대로 보여줍니다.
+    // (필드 이름을 정확히 맞추기 위한 임시 확인용 — 나중에 지워도 됩니다)
+    if (url.searchParams.get('debug') === '1') {
+      return new Response(rawText, {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
+
     const result = parseWork24Jobs(rawText);
     return jsonResponse(result, 200, { 'Cache-Control': 'public, max-age=300' });
   } catch (err) {
