@@ -1,11 +1,43 @@
-import React from 'react';
-import { Briefcase, GraduationCap, Users, ArrowRight, Award, Compass, Heart } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Briefcase, GraduationCap, Users, ArrowRight, Award, Compass, Heart, MapPin, ExternalLink } from 'lucide-react';
+import { fetchWork24Jobs, type Work24Job } from '../lib/work24';
 
 interface HomeProps {
   setActiveTab: (tab: string) => void;
 }
 
+interface JobsPreviewState {
+  loading: boolean;
+  total: number;
+  items: Work24Job[];
+  error?: string;
+}
+
 const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
+  const [jobsPreview, setJobsPreview] = useState<JobsPreviewState>({
+    loading: true,
+    total: 0,
+    items: [],
+  });
+
+  useEffect(() => {
+    let alive = true;
+
+    fetchWork24Jobs({ display: 3 })
+      .then((data) => {
+        if (!alive) return;
+        setJobsPreview({ loading: false, total: data.total, items: data.items, error: data.error });
+      })
+      .catch((err: Error) => {
+        if (!alive) return;
+        setJobsPreview({ loading: false, total: 0, items: [], error: err.message });
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   return (
     <div className="fade-in">
       {/* Hero Section */}
@@ -97,6 +129,56 @@ const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
         </div>
       </section>
 
+      {/* Live Jobs Preview (고용24 실시간 채용정보) */}
+      {!jobsPreview.error && (jobsPreview.loading || jobsPreview.items.length > 0) && (
+        <section style={{ padding: '20px 0 60px' }}>
+          <div className="container">
+            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+              <h2 className="section-title">지금 새로 올라온 채용공고</h2>
+              <p className="section-desc">고용24 오픈API로 실시간 연동된 최신 채용정보입니다</p>
+            </div>
+
+            {jobsPreview.loading ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>채용정보를 불러오는 중입니다...</p>
+            ) : (
+              <div className="grid">
+                {jobsPreview.items.map((job) => (
+                  <div className="card" key={job.id}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <span className="badge badge-secondary">{job.type}</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem' }}>{job.title}</h3>
+                    <p style={{ fontWeight: '600', color: 'var(--primary)', marginBottom: '8px' }}>{job.company}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '12px' }}>
+                      <MapPin size={14} />
+                      <span>{job.location}</span>
+                    </div>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>{job.salary}</p>
+                    {job.url ? (
+                      <a
+                        href={job.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="card-link"
+                        style={{ alignSelf: 'flex-start', color: 'var(--primary)', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        고용24에서 보기 <ExternalLink size={16} />
+                      </a>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ textAlign: 'center', marginTop: '32px' }}>
+              <button className="btn btn-secondary" onClick={() => setActiveTab('jobs')}>
+                전체 일자리 보기 <ArrowRight size={18} />
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Values Section */}
       <section style={{ padding: '60px 0', backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
         <div className="container">
@@ -145,8 +227,14 @@ const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
                 <span className="badge badge-primary">12개 코스</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>추천 채용 중 일자리</span>
-                <span className="badge badge-secondary">48개 채용공고</span>
+                <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>추천 채용 중 일자리 (고용24 실시간)</span>
+                <span className="badge badge-secondary">
+                  {jobsPreview.loading
+                    ? '불러오는 중...'
+                    : jobsPreview.error
+                      ? '정보 준비중'
+                      : `${jobsPreview.total.toLocaleString()}개 채용공고`}
+                </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>취업 지원 성공률</span>
