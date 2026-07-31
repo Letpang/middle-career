@@ -42,14 +42,22 @@ async function handleJobs(url, env) {
   const display = clampNumber(url.searchParams.get('display'), 1, 100, 10);
   const startPage = clampNumber(url.searchParams.get('startPage'), 1, 1000, 1);
   const keyword = url.searchParams.get('keyword') || '';
+  // regionKeyword: "고양", "파주" 처럼 지역명으로 좁혀서 보고 싶을 때 사용.
+  // 고용24 API 자체는 지역을 코드로만 필터링할 수 있어서(코드표가 필요),
+  // 대신 지역명을 keyword로 검색한 뒤, 실제 응답의 근무지역(region) 텍스트에
+  // 그 지역명이 포함된 공고만 한 번 더 걸러내는 방식으로 처리합니다.
+  const regionKeyword = url.searchParams.get('regionKeyword') || '';
+
+  const fetchDisplay = regionKeyword ? 100 : display;
 
   const apiUrl = new URL(WORK24_LIST_URL);
   apiUrl.searchParams.set('authKey', authKey);
   apiUrl.searchParams.set('callTp', 'L');
   apiUrl.searchParams.set('returnType', 'XML');
   apiUrl.searchParams.set('startPage', String(startPage));
-  apiUrl.searchParams.set('display', String(display));
+  apiUrl.searchParams.set('display', String(fetchDisplay));
   if (keyword) apiUrl.searchParams.set('keyword', keyword);
+  else if (regionKeyword) apiUrl.searchParams.set('keyword', regionKeyword);
 
   try {
     const upstream = await fetch(apiUrl.toString(), {
@@ -73,7 +81,13 @@ async function handleJobs(url, env) {
       });
     }
 
-    const result = parseWork24Jobs(rawText);
+    let result = parseWork24Jobs(rawText);
+
+    if (regionKeyword && !result.error) {
+      const filtered = result.items.filter((job) => job.location.includes(regionKeyword));
+      result = { total: filtered.length, items: filtered.slice(0, display) };
+    }
+
     return jsonResponse(result, 200, { 'Cache-Control': 'public, max-age=300' });
   } catch (err) {
     return jsonResponse(

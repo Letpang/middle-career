@@ -28,6 +28,7 @@ interface FetchWork24JobsParams {
   display?: number;
   startPage?: number;
   keyword?: string;
+  regionKeyword?: string;
 }
 
 export async function fetchWork24Jobs(
@@ -37,6 +38,7 @@ export async function fetchWork24Jobs(
   if (params.display) search.set('display', String(params.display));
   if (params.startPage) search.set('startPage', String(params.startPage));
   if (params.keyword) search.set('keyword', params.keyword);
+  if (params.regionKeyword) search.set('regionKeyword', params.regionKeyword);
 
   const res = await fetch(`/api/jobs?${search.toString()}`);
 

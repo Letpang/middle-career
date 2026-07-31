@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { MapPin, Building2, Phone, Clock, ChevronRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { MapPin, Building2, Phone, Clock, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react';
+import { fetchWork24Jobs, type Work24Job } from '../lib/work24';
 
 type RegionKey = '고양' | '파주';
 
@@ -10,7 +11,6 @@ interface RegionInfo {
   phone: string;
   hours: string;
   programs: string[];
-  jobs: { title: string; company: string; salary: string; type: string }[];
 }
 
 const regionData: Record<RegionKey, RegionInfo> = {
@@ -26,12 +26,6 @@ const regionData: Record<RegionKey, RegionInfo> = {
       '귀농·귀촌 준비 과정',
       '사회적 경제 조직 취업 교육',
     ],
-    jobs: [
-      { title: '고양 덕양구 관공서 행정 보조', company: '고양시청 일자리사업단', salary: '월 180만원', type: '공공/공익형' },
-      { title: '일산 킨텍스 행사 운영 지원', company: '㈜킨텍스서비스', salary: '일 8만원', type: '파트타임/알바' },
-      { title: '고양 어린이집 급식 조리 보조', company: '행복어린이집', salary: '시급 11,000원', type: '파트타임/알바' },
-      { title: '시니어 아파트 단지 경비', company: '삼성아파트관리(주)', salary: '월 230만원', type: '정규직/전문직' },
-    ],
   },
   파주: {
     description: '통일의 관문 파주시의 중장년 취업·교육 지원 정보를 안내합니다.',
@@ -45,26 +39,47 @@ const regionData: Record<RegionKey, RegionInfo> = {
       '물류·유통 자격증 취득 과정 (무료)',
       '중장년 1인 창업 컨설팅',
     ],
-    jobs: [
-      { title: '파주 출판단지 물류 관리 직원', company: '파주출판물류(주)', salary: '월 210만원', type: '정규직/전문직' },
-      { title: '헤이리 예술마을 안내 요원', company: '헤이리문화예술마을', salary: '시급 11,500원', type: '파트타임/알바' },
-      { title: '파주 임진각 관광 안내 해설사', company: '파주시 관광과', salary: '월 150만원', type: '공공/공익형' },
-      { title: '시니어 스쿨팜 텃밭 운영 지도사', company: '파주 로컬푸드협동조합', salary: '월 160만원', type: '시니어 인턴' },
-    ],
   },
-};
-
-const typeColors: Record<string, string> = {
-  '정규직/전문직': 'var(--primary)',
-  '파트타임/알바': 'var(--secondary)',
-  '시니어 인턴': 'var(--accent)',
-  '공공/공익형': 'var(--success)',
 };
 
 const Region: React.FC = () => {
   const [selected, setSelected] = useState<RegionKey | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [jobs, setJobs] = useState<Work24Job[]>([]);
 
   const info = selected ? regionData[selected] : null;
+
+  useEffect(() => {
+    if (!selected) return;
+
+    let alive = true;
+    setLoading(true);
+    setError(undefined);
+
+    fetchWork24Jobs({ regionKeyword: selected, display: 4 })
+      .then((data) => {
+        if (!alive) return;
+        if (data.error) {
+          setError(data.error);
+          setJobs([]);
+        } else {
+          setJobs(data.items);
+        }
+      })
+      .catch((err: Error) => {
+        if (!alive) return;
+        setError(err.message);
+        setJobs([]);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [selected]);
 
   return (
     <div className="fade-in">
@@ -158,38 +173,72 @@ const Region: React.FC = () => {
               </div>
             </div>
 
-            {/* 지역 일자리 */}
+            {/* 지역 일자리 (고용24 실시간 연동) */}
             <div>
               <h2 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '16px', color: 'var(--text-primary)' }}>
-                {selected} 추천 일자리
+                {selected} 추천 일자리 <span style={{ fontSize: '0.85rem', fontWeight: '500', color: 'var(--text-muted)' }}>(고용24 실시간)</span>
               </h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {info.jobs.map((job, idx) => (
-                  <div
-                    key={idx}
-                    className="card"
-                    style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', padding: '20px 24px', gap: '16px' }}
+
+              {loading && (
+                <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>채용정보를 불러오는 중입니다...</p>
+              )}
+
+              {!loading && error && (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <p style={{ color: 'var(--danger)', marginBottom: '16px' }}>채용정보를 불러오지 못했습니다. ({error})</p>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setSelected(selected === '고양' ? '고양' : '파주')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                   >
-                    <div style={{ flex: '1 1 300px' }}>
-                      <p style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '4px', color: typeColors[job.type] ?? 'var(--primary)' }}>
-                        {job.type}
-                      </p>
-                      <h3 style={{ fontSize: '1.05rem', marginBottom: '4px', color: 'var(--text-primary)' }}>{job.title}</h3>
-                      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>{job.company}</p>
+                    <RefreshCw size={16} /> 다시 시도
+                  </button>
+                </div>
+              )}
+
+              {!loading && !error && jobs.length === 0 && (
+                <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                  현재 "{selected}" 지역으로 확인되는 채용공고가 없습니다. 잠시 후 다시 확인해 주세요.
+                </p>
+              )}
+
+              {!loading && !error && jobs.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {jobs.map((job) => (
+                    <div
+                      key={job.id}
+                      className="card"
+                      style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', padding: '20px 24px', gap: '16px' }}
+                    >
+                      <div style={{ flex: '1 1 300px' }}>
+                        <p style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '4px', color: 'var(--primary)' }}>
+                          {job.type} · {job.location}
+                        </p>
+                        <h3 style={{ fontSize: '1.05rem', marginBottom: '4px', color: 'var(--text-primary)' }}>{job.title}</h3>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>{job.company}</p>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: '700', color: 'var(--success)', fontSize: '0.95rem' }}>{job.salary}</span>
+                        {job.url ? (
+                          <a
+                            href={job.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-primary"
+                            style={{ padding: '8px 20px', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          >
+                            지원하기 <ExternalLink size={14} />
+                          </a>
+                        ) : (
+                          <button className="btn btn-primary" style={{ padding: '8px 20px', fontSize: '0.9rem' }} disabled>
+                            지원 링크 준비중
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: '700', color: 'var(--success)', fontSize: '0.95rem' }}>{job.salary}</span>
-                      <button
-                        className="btn btn-primary"
-                        style={{ padding: '8px 20px', fontSize: '0.9rem' }}
-                        onClick={() => alert(`"${job.title}" 공고에 지원 절차를 안내해 드립니다. 프로필을 최신화해 주세요!`)}
-                      >
-                        지원하기
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
