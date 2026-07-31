@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, MapPin, DollarSign, Filter, ExternalLink, RefreshCw } from 'lucide-react';
 import { fetchWork24Jobs, type Work24Job } from '../lib/work24';
 
@@ -9,12 +9,13 @@ const Jobs: React.FC = () => {
   const [error, setError] = useState<string | undefined>(undefined);
   const [jobs, setJobs] = useState<Work24Job[]>([]);
   const [total, setTotal] = useState<number>(0);
+  const isFirstRun = useRef(true);
 
-  const loadJobs = () => {
+  const loadJobs = (keyword?: string) => {
     setLoading(true);
     setError(undefined);
 
-    fetchWork24Jobs({ display: 30 })
+    fetchWork24Jobs({ display: 30, keyword })
       .then((data) => {
         if (data.error) {
           setError(data.error);
@@ -33,26 +34,32 @@ const Jobs: React.FC = () => {
       .finally(() => setLoading(false));
   };
 
+  // 처음 화면 진입 시: 최신 채용공고 30건
   useEffect(() => {
     loadJobs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 검색어 입력 시: 화면에 이미 불러온 30건 안에서만 찾지 않고,
+  // 고용24 전체 데이터(6만여 건)에서 다시 검색합니다. (입력 후 500ms 뒤 자동 검색)
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      loadJobs(searchQuery.trim() || undefined);
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   const jobTypes = useMemo(() => {
     const uniqueTypes = Array.from(new Set(jobs.map((job) => job.type).filter(Boolean)));
     return ['전체', ...uniqueTypes];
   }, [jobs]);
 
-  const filteredJobs = jobs.filter((job) => {
-    const matchesType = selectedType === '전체' || job.type === selectedType;
-    const q = searchQuery.toLowerCase();
-    const matchesSearch =
-      q === '' ||
-      job.title.toLowerCase().includes(q) ||
-      job.company.toLowerCase().includes(q) ||
-      job.location.toLowerCase().includes(q);
-    return matchesType && matchesSearch;
-  });
+  const filteredJobs = jobs.filter((job) => selectedType === '전체' || job.type === selectedType);
 
   return (
     <div className="fade-in">
@@ -127,7 +134,7 @@ const Jobs: React.FC = () => {
             <p style={{ color: 'var(--danger)', fontSize: '1.05rem', marginBottom: '16px' }}>
               채용정보를 불러오지 못했습니다. ({error})
             </p>
-            <button className="btn btn-secondary" onClick={loadJobs} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <button className="btn btn-secondary" onClick={() => loadJobs(searchQuery.trim() || undefined)} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
               <RefreshCw size={16} /> 다시 시도
             </button>
           </div>
