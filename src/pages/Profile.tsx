@@ -13,20 +13,21 @@ interface ProfileData {
   bio: string;
 }
 
-const Profile: React.FC = () => {
-  const [profile, setProfile] = useState<ProfileData>({
-    name: '홍길동',
-    birthYear: '1972',
-    phone: '010-1234-5678',
-    email: 'gildong.hong@gmail.com',
-    jobCategory: '정규직/전문직',
-    location: '서울 강남구',
-    experience: '경영 관리 및 총무 업무 20년 근무\n대기업 기획실 총괄 팀장 역임\n스타트업 자문위원 활동',
-    skills: '비즈니스 기획, 자금 조달 컨설팅, 엑셀/PPT 실무, 멘토링',
-    bio: '안녕하세요. 20년 이상 대기업 및 중소기업에서 인사/기획 업무를 전담했던 홍길동입니다. 은퇴 후 저의 소중한 비즈니스 지식과 문제 해결 노하우를 살려 중소기업의 든든한 멘토이자 파트너로서 기여하고 싶습니다.'
-  });
+const EMPTY_PROFILE: ProfileData = {
+  name: '',
+  birthYear: '',
+  phone: '',
+  email: '',
+  jobCategory: '정규직/전문직',
+  location: '',
+  experience: '',
+  skills: '',
+  bio: '',
+};
 
-  const [isEditing, setIsEditing] = useState<boolean>(false);
+const Profile: React.FC = () => {
+  const [profile, setProfile] = useState<ProfileData>(EMPTY_PROFILE);
+  const [isEditing, setIsEditing] = useState<boolean>(true);
   const [saveStatus, setSaveStatus] = useState<string>('');
 
   // Load from localStorage on mount
@@ -35,6 +36,7 @@ const Profile: React.FC = () => {
     if (saved) {
       try {
         setProfile(JSON.parse(saved));
+        setIsEditing(false);
       } catch (e) {
         console.error('Failed to parse profile data', e);
       }
@@ -114,8 +116,10 @@ const Profile: React.FC = () => {
               <User size={48} />
             </div>
 
-            <h2 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '4px', color: 'var(--text-primary)' }}>{profile.name}</h2>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>{profile.birthYear}년생 ({new Date().getFullYear() - parseInt(profile.birthYear) + 1}세)</p>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '4px', color: 'var(--text-primary)' }}>{profile.name || '이름을 입력해 주세요'}</h2>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              {profile.birthYear ? `${profile.birthYear}년생 (${new Date().getFullYear() - parseInt(profile.birthYear) + 1}세)` : '출생년도 미입력'}
+            </p>
 
             {/* Profile Completion Score */}
             <div style={{ width: '100%', backgroundColor: 'var(--bg-tertiary)', borderRadius: '12px', padding: '16px', marginBottom: '24px' }}>
@@ -135,15 +139,15 @@ const Profile: React.FC = () => {
             <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                 <Phone size={16} style={{ color: 'var(--primary)' }} />
-                <span>{profile.phone}</span>
+                <span>{profile.phone || '연락처 미입력'}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
                 <Mail size={16} style={{ color: 'var(--primary)' }} />
-                <span>{profile.email}</span>
+                <span>{profile.email || '이메일 미입력'}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                 <MapPin size={16} style={{ color: 'var(--primary)' }} />
-                <span>{profile.location}</span>
+                <span>{profile.location || '희망 근무지 미입력'}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                 <Briefcase size={16} style={{ color: 'var(--primary)' }} />
@@ -180,22 +184,22 @@ const Profile: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>이름</label>
-                    <input type="text" name="name" value={profile.name} onChange={handleChange} required />
+                    <input type="text" name="name" value={profile.name} onChange={handleChange} placeholder="홍길동" required />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>출생년도</label>
-                    <input type="number" name="birthYear" value={profile.birthYear} onChange={handleChange} required />
+                    <input type="number" name="birthYear" value={profile.birthYear} onChange={handleChange} placeholder="예: 1970" required />
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>연락처</label>
-                    <input type="text" name="phone" value={profile.phone} onChange={handleChange} required />
+                    <input type="text" name="phone" value={profile.phone} onChange={handleChange} placeholder="010-0000-0000" required />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>이메일</label>
-                    <input type="email" name="email" value={profile.email} onChange={handleChange} required />
+                    <input type="email" name="email" value={profile.email} onChange={handleChange} placeholder="example@email.com" required />
                   </div>
                 </div>
 
@@ -211,7 +215,7 @@ const Profile: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>희망 근무지</label>
-                    <input type="text" name="location" value={profile.location} onChange={handleChange} />
+                    <input type="text" name="location" value={profile.location} onChange={handleChange} placeholder="예: 고양시 일산동구" />
                   </div>
                 </div>
 

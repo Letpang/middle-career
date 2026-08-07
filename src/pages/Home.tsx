@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Briefcase, GraduationCap, Users, ArrowRight, Award, Compass, Heart, MapPin, ExternalLink } from 'lucide-react';
+import { Briefcase, GraduationCap, MessageCircle, UserCheck, ArrowRight, Award, Compass, Heart, MapPin, ExternalLink } from 'lucide-react';
 import { fetchWork24Jobs, type Work24Job } from '../lib/work24';
 
 interface HomeProps {
@@ -49,15 +49,16 @@ const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
             <span>중장년 커리어 브릿지</span>
           </h1>
           <p className="hero-subtitle">
-            오랜 시간 쌓아오신 소중한 지혜와 경험이 새로운 기회와 연결되도록 맞춤 교육과 검증된 일자리를 지원합니다.
+            오랜 시간 쌓아오신 소중한 경험과 지혜가 새로운 기회로 이어지도록,
+            실시간 채용정보부터 맞춤 교육, 1:1 상담까지 한 곳에서 도와드립니다.
           </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button className="btn btn-primary" onClick={() => setActiveTab('jobs')}>
               맞춤 일자리 찾기
               <ArrowRight size={18} />
             </button>
-            <button className="btn btn-secondary" onClick={() => setActiveTab('education')}>
-              교육 프로그램 둘러보기
+            <button className="btn btn-secondary" onClick={() => setActiveTab('counseling')}>
+              1:1 상담 신청하기
             </button>
           </div>
         </div>
@@ -68,39 +69,21 @@ const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
             <h2 className="section-title">핵심 제공 서비스</h2>
-            <p className="section-desc">성공적인 인생 2막을 준비하기 위한 3가지 솔루션</p>
+            <p className="section-desc">성공적인 재취업 준비를 위한 4가지 서비스</p>
           </div>
 
-          <div className="grid">
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
             {/* Card 1 */}
-            <div className="card">
-              <div className="card-icon-container">
-                <GraduationCap size={24} />
-              </div>
-              <h3>맞춤형 역량 교육</h3>
-              <p>
-                디지털 기본 역량부터 재취업 필수 전문 자격증 코스까지, 중장년층이 빠르게 적응하고 성과를 낼 수 있는 최적의 교육 과정을 제안합니다.
-              </p>
-              <button 
-                className="card-link" 
-                onClick={() => setActiveTab('education')}
-                style={{ alignSelf: 'flex-start', color: 'var(--primary)', fontWeight: '600' }}
-              >
-                교육 과정 보기 <ArrowRight />
-              </button>
-            </div>
-
-            {/* Card 2 */}
             <div className="card">
               <div className="card-icon-container">
                 <Briefcase size={24} />
               </div>
-              <h3>신뢰할 수 있는 일자리</h3>
+              <h3>실시간 일자리 정보</h3>
               <p>
-                단순 노무를 넘어 단순 파트타임, 전문 컨설턴트, 시니어 인턴십 등 그동안의 전문 경력을 이어나갈 수 있는 양질의 채용 정보를 매칭해 드립니다.
+                고용24 공공 채용정보와 실시간으로 연동하여, 단순 업무부터 그동안의 전문 경력을 이어갈 수 있는 양질의 일자리까지 안내합니다.
               </p>
-              <button 
-                className="card-link" 
+              <button
+                className="card-link"
                 onClick={() => setActiveTab('jobs')}
                 style={{ alignSelf: 'flex-start', color: 'var(--primary)', fontWeight: '600' }}
               >
@@ -108,21 +91,57 @@ const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
               </button>
             </div>
 
+            {/* Card 2 */}
+            <div className="card">
+              <div className="card-icon-container">
+                <GraduationCap size={24} />
+              </div>
+              <h3>맞춤형 역량 교육</h3>
+              <p>
+                디지털 기본 역량부터 재취업 필수 전문 과정까지, 중장년층이 빠르게 적응하고 성과를 낼 수 있는 교육 과정을 제안합니다.
+              </p>
+              <button
+                className="card-link"
+                onClick={() => setActiveTab('education')}
+                style={{ alignSelf: 'flex-start', color: 'var(--primary)', fontWeight: '600' }}
+              >
+                교육 과정 보기 <ArrowRight />
+              </button>
+            </div>
+
             {/* Card 3 */}
             <div className="card">
               <div className="card-icon-container">
-                <Users size={24} />
+                <MessageCircle size={24} />
               </div>
-              <h3>1:1 커리어 컨설팅</h3>
+              <h3>1:1 커리어 상담지원</h3>
               <p>
-                전문 이력서 클리닉, 인공지능 모의 면접 가이드 및 심층 커리어 상담을 통해 본인의 강점을 찾아 차별화된 취업 전략을 세워 드립니다.
+                이력서 클리닉, 면접 준비, 진로 고민까지 전문 상담사와 함께 이야기 나누고 나에게 맞는 재취업 전략을 세워 드립니다.
               </p>
-              <button 
-                className="card-link" 
+              <button
+                className="card-link"
+                onClick={() => setActiveTab('counseling')}
+                style={{ alignSelf: 'flex-start', color: 'var(--primary)', fontWeight: '600' }}
+              >
+                상담 신청하기 <ArrowRight />
+              </button>
+            </div>
+
+            {/* Card 4 */}
+            <div className="card">
+              <div className="card-icon-container">
+                <UserCheck size={24} />
+              </div>
+              <h3>커리어 프로필 관리</h3>
+              <p>
+                이름, 경력, 보유 기술을 한 번만 등록해 두면 나에게 맞는 일자리와 교육을 더 쉽게 찾아볼 수 있습니다.
+              </p>
+              <button
+                className="card-link"
                 onClick={() => setActiveTab('profile')}
                 style={{ alignSelf: 'flex-start', color: 'var(--primary)', fontWeight: '600' }}
               >
-                프로필 완성하기 <ArrowRight />
+                프로필 작성하기 <ArrowRight />
               </button>
             </div>
           </div>
@@ -191,7 +210,7 @@ const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
               <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
                 중장년 세대의 지혜는 새로운 세대와 사회에 귀중한 나침반이 됩니다. 커리어 브릿지는 이 연결고리가 끊어지지 않도록 단단한 다리가 되어 드리겠습니다.
               </p>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <div style={{ color: 'var(--success)', marginTop: '4px' }}><Award size={20} /></div>
@@ -210,13 +229,13 @@ const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <div style={{ color: 'var(--danger)', marginTop: '4px' }}><Heart size={20} /></div>
                   <div>
-                    <h4 style={{ fontWeight: '600', color: 'var(--text-primary)' }}>인간 중심 커뮤니티</h4>
-                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>일과 배움을 공유하며 함께 성장하는 따뜻한 네트워크를 지향합니다.</p>
+                    <h4 style={{ fontWeight: '600', color: 'var(--text-primary)' }}>사람 중심의 상담</h4>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>혼자 고민하지 않도록, 전문 상담사가 눈높이에 맞춰 함께 길을 찾아 드립니다.</p>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '20px', backgroundColor: 'var(--bg-primary)', padding: '30px', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
               <div style={{ textAlign: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '20px' }}>
                 <h3 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--primary)' }}>간편 연결 정보</h3>
@@ -237,15 +256,15 @@ const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>취업 지원 성공률</span>
-                <span className="badge badge-accent" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent)' }}>84.3%</span>
+                <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>1:1 상담 소요 시간</span>
+                <span className="badge badge-accent" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent)' }}>약 30분</span>
               </div>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 style={{ width: '100%', marginTop: '10px' }}
-                onClick={() => setActiveTab('profile')}
+                onClick={() => setActiveTab('counseling')}
               >
-                이력 등록하고 상담 받기
+                지금 상담 신청하기
               </button>
             </div>
           </div>

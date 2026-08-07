@@ -12,12 +12,19 @@
 const WORK24_LIST_URL =
   'https://www.work24.go.kr/cm/openApi/call/wk/callOpenApiSvcInfo210L01.do';
 
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/jobs') {
       return handleJobs(url, env);
+    }
+
+    if (url.pathname === '/api/chat' && request.method === 'POST') {
+      return handleChat(request, env);
     }
 
     // API 경로가 아니면 평소처럼 빌드된 화면(정적 파일)을 그대로 내려줍니다.
@@ -113,6 +120,89 @@ async function fetchWork24Raw(authKey, { startPage, display, keyword }) {
   }
 
   return text;
+}
+
+// ---------------------------------------------------------------------------
+// AI 질문창 (Gemini API 중계)
+//
+// 화면에서 GOOGLE_API_KEY를 직접 쓰면 키가 노출되니, 여기서도 work24와 같은
+// 방식으로 중계합니다. 인증키는 로컬에서는 .dev.vars, 배포 후에는
+// `npx wrangler secret put GOOGLE_API_KEY` 로 등록한 값을 사용합니다.
+// ---------------------------------------------------------------------------
+
+const CHAT_SYSTEM_INSTRUCTION = `당신은 "커리어 브릿지(Career Bridge)"라는, 4060 중장년 세대의 재취업과 인생 2막을 돕는 웹사이트의 AI 안내 도우미입니다.
+이 사이트에는 홈, 일자리(고용24 실시간 채용정보), 교육, 지역(고양/파주 중장년내일센터 안내), 1:1 상담지원, 프로필 메뉴가 있습니다.
+사용자는 대부분 컴퓨터나 인터넷 사용이 익숙하지 않은 중장년층입니다. 항상 정중한 존댓말을 쓰고, 어려운 IT 용어나 전문 용어는 피하고, 문장을 짧고 쉽게 답변하세요.
+답변은 3~5문장 이내로 간결하게 하고, 필요하면 사이트의 어느 메뉴로 가면 되는지 안내해 주세요 (예: "일자리 메뉴에서 확인하실 수 있어요").
+이력서 작성, 면접 준비, 재취업 관련 일반적인 조언도 친절하게 해주셔도 됩니다.
+의료, 법률, 재정에 대한 전문적인 판단이 필요한 질문에는 전문가(상담사, 변호사, 세무사 등)와 상의하시라고 안내하세요.`;
+
+async function handleChat(request, env) {
+  const apiKey = env.GOOGLE_API_KEY;
+
+  if (!apiKey) {
+    return jsonResponse(
+      { error: 'GOOGLE_API_KEY가 설정되어 있지 않습니다. (.dev.vars 또는 wrangler secret 확인 필요)' },
+      500,
+    );
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: '요청 형식이 올바르지 않습니다.' }, 400);
+  }
+
+  const message = typeof body.message === 'string' ? body.message.trim() : '';
+  const history = Array.isArray(body.history) ? body.history : [];
+
+  if (!message) {
+    return jsonResponse({ error: '메시지를 입력해 주세요.' }, 400);
+  }
+
+  // history: [{ role: 'user' | 'assistant', text: '...' }, ...] (최근 대화 몇 개만 프론트에서 보내줌)
+  const contents = [
+    ...history
+      .filter((h) => h && typeof h.text === 'string' && h.text.trim())
+      .map((h) => ({
+        role: h.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: h.text }],
+      })),
+    { role: 'user', parts: [{ text: message }] },
+  ];
+
+  try {
+    const geminiUrl = new URL(GEMINI_URL);
+    geminiUrl.searchParams.set('key', apiKey);
+
+    const upstream = await fetch(geminiUrl.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: CHAT_SYSTEM_INSTRUCTION }] },
+        contents,
+        generationConfig: { temperature: 0.6, maxOutputTokens: 400 },
+      }),
+    });
+
+    const data = await upstream.json();
+
+    if (!upstream.ok) {
+      const detail = data?.error?.message || `HTTP ${upstream.status}`;
+      return jsonResponse({ error: `AI 응답 중 오류가 발생했습니다. (${detail})` }, 502);
+    }
+
+    const reply = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
+
+    if (!reply) {
+      return jsonResponse({ error: 'AI가 답변을 생성하지 못했습니다. 다시 시도해 주세요.' }, 502);
+    }
+
+    return jsonResponse({ reply: reply.trim() });
+  } catch (err) {
+    return jsonResponse({ error: 'AI 서버 호출 중 오류가 발생했습니다.', detail: String(err) }, 502);
+  }
 }
 
 function clampNumber(value, min, max, fallback) {

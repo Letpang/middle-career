@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, MapPin, DollarSign, Filter, ExternalLink, RefreshCw } from 'lucide-react';
 import { fetchWork24Jobs, type Work24Job } from '../lib/work24';
+import { JOB_REFERENCE_SITES } from '../lib/externalSites';
 
 const Jobs: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string>('전체');
@@ -231,6 +232,49 @@ const Jobs: React.FC = () => {
             </div>
           )
         )}
+
+        {/* 다른 채용사이트 안내 */}
+        <div style={{ marginTop: '60px' }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text-primary)' }}>
+            다른 채용사이트도 함께 확인해보세요
+          </h2>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '24px' }}>
+            분야별로 자주 활용되는 전문 채용사이트예요. 눌러서 바로 이동할 수 있어요.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {JOB_REFERENCE_SITES.map((group) => (
+              <div key={group.category}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '12px', color: 'var(--primary)' }}>
+                  {group.category}
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                  {group.sites.map((site) => (
+                    <a
+                      key={site.name}
+                      href={site.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="card"
+                      style={{
+                        flex: '1 1 220px',
+                        padding: '16px 18px',
+                        textDecoration: 'none',
+                        gap: '4px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '0.95rem' }}>{site.name}</span>
+                        <ExternalLink size={15} style={{ color: 'var(--text-muted)' }} />
+                      </div>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{site.desc}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

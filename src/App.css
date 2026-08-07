@@ -43,6 +43,47 @@
   gap: 8px;
 }
 
+/* Font Size Control (시니어 접근성) */
+.font-size-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.font-size-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.font-size-btn:hover:not(:disabled) {
+  background-color: var(--bg-secondary);
+  color: var(--primary);
+}
+
+.font-size-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.font-size-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 0 2px;
+  user-select: none;
+}
+
 .nav-item {
   display: flex;
   align-items: center;

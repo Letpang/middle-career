@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Clock, BookOpen, Filter, CheckCircle } from 'lucide-react';
+import { Search, Clock, BookOpen, Filter, CheckCircle, ExternalLink } from 'lucide-react';
+import { EDUCATION_REFERENCE_SITES } from '../lib/externalSites';
 
 interface Course {
   id: number;
@@ -234,6 +235,49 @@ const Education: React.FC = () => {
             <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>조건에 맞는 교육 과정이 없습니다. 다른 키워드로 검색해 보세요.</p>
           </div>
         )}
+
+        {/* 지역별 평생학습·재취업 교육 안내 */}
+        <div style={{ marginTop: '60px' }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '8px', color: 'var(--text-primary)' }}>
+            지역별 평생학습·재취업 교육 사이트
+          </h2>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '24px' }}>
+            고양·파주·김포 시청과 대학이 직접 운영하는 평생학습 프로그램이에요. 눌러서 바로 이동할 수 있어요.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {EDUCATION_REFERENCE_SITES.map((group) => (
+              <div key={group.category}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '12px', color: 'var(--primary)' }}>
+                  {group.category}
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                  {group.sites.map((site) => (
+                    <a
+                      key={site.name}
+                      href={site.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="card"
+                      style={{
+                        flex: '1 1 220px',
+                        padding: '16px 18px',
+                        textDecoration: 'none',
+                        gap: '4px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '0.95rem' }}>{site.name}</span>
+                        <ExternalLink size={15} style={{ color: 'var(--text-muted)' }} />
+                      </div>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{site.desc}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
