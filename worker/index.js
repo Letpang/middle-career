@@ -65,47 +65,36 @@ async function handleJobs(url, env) {
   try {
     if (regionKeyword) {
       // 지역코드(통계청 법정동코드)로 직접 조회. 고양은 4개 코드(41280/41281/41285/41287)를
-      // 전부 병렬로 호출해서 합칩니다.
+      // 전부 병렬로 호출해서 합치고, 코드당 여러 페이지를 이어서 가져와 "전부" 다 모읍니다.
+      // (직종별로 묶어서 보여줘야 하므로 30건으로 자르지 않습니다.)
       const regionCodes = REGION_CODE_MAP[regionKeyword] || [];
-      const perCode = Math.max(display, 30);
       const regionDebug = [];
 
       const responses = await Promise.all(
         regionCodes.map(async (code) => {
           try {
-            const rawText = await fetchWork24Raw(authKey, {
-              startPage: 1,
-              display: perCode,
-              region: code,
-            });
-            return { code, rawText };
-          } catch {
-            return { code, rawText: null };
+            const items = await fetchAllJobsForRegionCode(authKey, code, 300);
+            return { code, items };
+          } catch (err) {
+            return { code, items: [], fetchError: String(err) };
           }
         }),
       );
 
       const seen = new Set();
       const matched = [];
-      for (const { code, rawText } of responses) {
-        if (!rawText) {
-          regionDebug.push({ code, count: 0, error: 'fetch 실패' });
-          continue;
-        }
-        const parsed = parseWork24Jobs(rawText);
-        if (parsed.error) {
-          regionDebug.push({ code, count: 0, error: parsed.error });
-          continue;
-        }
-        regionDebug.push({ code, count: parsed.items.length });
-        for (const job of parsed.items) {
+      for (const { code, items, fetchError } of responses) {
+        regionDebug.push(
+          fetchError ? { code, count: 0, error: fetchError } : { code, count: items.length },
+        );
+        for (const job of items) {
           if (seen.has(job.id)) continue;
           seen.add(job.id);
           matched.push(job);
         }
       }
 
-      const body = { total: matched.length, items: matched.slice(0, display) };
+      const body = { total: matched.length, items: matched };
       // ?debug=1 을 붙이면 코드별로 몇 건씩 나왔는지 볼 수 있습니다 (원인 확인용).
       if (debug) body._regionDebug = regionDebug;
 
@@ -152,6 +141,29 @@ async function fetchWork24Raw(authKey, { startPage, display, keyword, region }) 
   }
 
   return text;
+}
+
+// 지역코드 하나에 대해, 여러 페이지(최대 100건씩)를 이어서 호출해 가능한 한
+// 전체 공고를 다 모읍니다. maxItems는 안전장치(과도한 API 호출 방지)입니다.
+async function fetchAllJobsForRegionCode(authKey, code, maxItems) {
+  const perPage = 100;
+  let page = 1;
+  const collected = [];
+
+  while (collected.length < maxItems) {
+    const rawText = await fetchWork24Raw(authKey, { startPage: page, display: perPage, region: code });
+    const parsed = parseWork24Jobs(rawText);
+    if (parsed.error || parsed.items.length === 0) break;
+
+    collected.push(...parsed.items);
+
+    const total = Number(parsed.total) || Infinity;
+    if (parsed.items.length < perPage) break; // 마지막 페이지
+    if (collected.length >= total) break; // 전체 다 가져옴
+    page++;
+  }
+
+  return collected.slice(0, maxItems);
 }
 
 // ---------------------------------------------------------------------------

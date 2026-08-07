@@ -1,13 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, MapPin, DollarSign, Filter, ExternalLink, RefreshCw } from 'lucide-react';
+import { Search, MapPin, DollarSign, Filter, ExternalLink, RefreshCw, ChevronLeft, Briefcase } from 'lucide-react';
 import { fetchWork24Jobs, type Work24Job } from '../lib/work24';
 import { JOB_REFERENCE_SITES } from '../lib/externalSites';
+import { classifyJobTitle, groupJobsByCategory } from '../lib/jobCategories';
 
 const REGIONS = ['전체', '고양', '파주', '김포'];
 
 const Jobs: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string>('전체');
   const [selectedRegion, setSelectedRegion] = useState<string>('전체');
+  // 지역을 선택했을 때만 쓰는 상태: 처음엔 직종별 카드로 보여주고, 카드를 누르면
+  // 해당 직종의 공고 목록으로 들어갑니다.
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -19,9 +23,10 @@ const Jobs: React.FC = () => {
     setLoading(true);
     setError(undefined);
 
+    // 지역을 선택했을 때는 30건으로 자르지 않고 전체를 받아와서 직종별로 묶어 보여줍니다.
     const params =
       opts.region && opts.region !== '전체'
-        ? { regionKeyword: opts.region, display: 30 }
+        ? { regionKeyword: opts.region }
         : { keyword: opts.keyword, display: 30 };
 
     fetchWork24Jobs(params)
@@ -67,6 +72,7 @@ const Jobs: React.FC = () => {
 
   const handleRegionSelect = (region: string) => {
     setSelectedRegion(region);
+    setSelectedCategory(null);
     setSearchQuery('');
     loadJobs({ region });
   };
@@ -76,7 +82,20 @@ const Jobs: React.FC = () => {
     return ['전체', ...uniqueTypes];
   }, [jobs]);
 
-  const filteredJobs = jobs.filter((job) => selectedType === '전체' || job.type === selectedType);
+  const isRegionMode = selectedRegion !== '전체';
+
+  // 지역 모드일 때: 직종별 건수 카드 (카테고리를 아직 안 골랐을 때 보여줌)
+  const jobCategories = useMemo(() => groupJobsByCategory(jobs), [jobs]);
+
+  // 지역 모드 + 직종을 고른 상태에서 보여줄 목록
+  const regionCategoryJobs = useMemo(
+    () => (selectedCategory ? jobs.filter((job) => classifyJobTitle(job.title) === selectedCategory) : []),
+    [jobs, selectedCategory],
+  );
+
+  const filteredJobs = isRegionMode
+    ? regionCategoryJobs
+    : jobs.filter((job) => selectedType === '전체' || job.type === selectedType);
 
   return (
     <div className="fade-in">
@@ -125,40 +144,49 @@ const Jobs: React.FC = () => {
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: '1 1 300px' }}>
-              <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
-              <input
-                type="text"
-                placeholder={selectedRegion === '전체' ? '직무명, 기업명, 지역을 검색하세요...' : `'전체' 지역을 선택하면 검색할 수 있어요`}
-                style={{ width: '100%', paddingLeft: '40px' }}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                disabled={selectedRegion !== '전체'}
-              />
-            </div>
+          {!isRegionMode && (
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: '1 1 300px' }}>
+                <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
+                <input
+                  type="text"
+                  placeholder="직무명, 기업명, 지역을 검색하세요..."
+                  style={{ width: '100%', paddingLeft: '40px' }}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
 
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <Filter size={18} style={{ color: 'var(--text-secondary)', marginRight: '4px' }} />
-              {jobTypes.map(type => (
-                <button
-                  key={type}
-                  onClick={() => setSelectedType(type)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontSize: '0.9rem',
-                    fontWeight: '500',
-                    backgroundColor: selectedType === type ? 'var(--primary)' : 'var(--bg-tertiary)',
-                    color: selectedType === type ? '#ffffff' : 'var(--text-secondary)',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  {type}
-                </button>
-              ))}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <Filter size={18} style={{ color: 'var(--text-secondary)', marginRight: '4px' }} />
+                {jobTypes.map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setSelectedType(type)}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontSize: '0.9rem',
+                      fontWeight: '500',
+                      backgroundColor: selectedType === type ? 'var(--primary)' : 'var(--bg-tertiary)',
+                      color: selectedType === type ? '#ffffff' : 'var(--text-secondary)',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {isRegionMode && (
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              {selectedCategory
+                ? `'${selectedRegion}' 지역의 '${selectedCategory}' 공고예요.`
+                : `'${selectedRegion}' 지역의 채용공고를 직종별로 묶어서 보여드려요. 원하는 직종 카드를 눌러주세요.`}
+            </p>
+          )}
         </div>
 
         {/* Loading State */}
@@ -184,8 +212,53 @@ const Jobs: React.FC = () => {
           </div>
         )}
 
+        {/* 지역 모드: 직종별 카드 (아직 직종을 안 골랐을 때) */}
+        {!loading && !error && isRegionMode && !selectedCategory && (
+          jobCategories.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+              {jobCategories.map((cat) => (
+                <button
+                  key={cat.name}
+                  onClick={() => setSelectedCategory(cat.name)}
+                  className="card"
+                  style={{
+                    padding: '24px 20px',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary)' }}>
+                    <Briefcase size={20} />
+                    <span style={{ fontWeight: '700', fontSize: '1.05rem', color: 'var(--text-primary)' }}>{cat.name}</span>
+                  </div>
+                  <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{cat.count.toLocaleString()}건</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
+                '{selectedRegion}' 지역에 등록된 채용공고가 아직 없어요.
+              </p>
+            </div>
+          )
+        )}
+
+        {/* 지역 모드에서 직종을 고른 경우: 뒤로가기 */}
+        {!loading && !error && isRegionMode && selectedCategory && (
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className="btn btn-secondary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '20px' }}
+          >
+            <ChevronLeft size={16} /> 직종 목록으로
+          </button>
+        )}
+
         {/* Jobs List */}
-        {!loading && !error && (
+        {!loading && !error && (!isRegionMode || selectedCategory) && (
           filteredJobs.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {filteredJobs.map(job => (
