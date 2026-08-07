@@ -12,6 +12,15 @@
 const WORK24_LIST_URL =
   'https://www.work24.go.kr/cm/openApi/call/wk/callOpenApiSvcInfo210L01.do';
 
+// 고용24 API의 region 파라미터는 통계청 법정동코드(시군구 단위)를 씁니다.
+// 고양시는 3개 구(덕양/일산동/일산서)로 나뉘어 있어서, 구 코드로 올라온 공고와
+// 예전 방식대로 고양시 통합 코드로 올라온 공고가 섞여있을 수 있어 4개 코드를 모두 조회합니다.
+const REGION_CODE_MAP = {
+  고양: ['41280', '41281', '41285', '41287'],
+  파주: ['41480'],
+  김포: ['41570'],
+};
+
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
@@ -55,30 +64,52 @@ async function handleJobs(url, env) {
 
   try {
     if (regionKeyword) {
-      // 고용24 API의 keyword 검색은 "채용 제목"만 뒤지기 때문에, 제목에 지역명이
-      // 안 들어간 공고(대부분)는 keyword 검색으론 못 찾습니다. 그래서 최신 공고를
-      // 여러 페이지(최대 500건) 가져와서, 실제 근무지역(region) 값에 해당 지역명이
-      // 들어있는 공고를 직접 찾아내는 방식으로 처리합니다.
-      const MAX_PAGES = 5;
-      const PAGE_SIZE = 100;
-      const matched = [];
+      // 지역코드(통계청 법정동코드)로 직접 조회. 고양은 4개 코드(41280/41281/41285/41287)를
+      // 전부 병렬로 호출해서 합칩니다.
+      const regionCodes = REGION_CODE_MAP[regionKeyword] || [];
+      const perCode = Math.max(display, 30);
+      const regionDebug = [];
 
-      for (let page = 1; page <= MAX_PAGES && matched.length < display; page++) {
-        const rawText = await fetchWork24Raw(authKey, { startPage: page, display: PAGE_SIZE });
+      const responses = await Promise.all(
+        regionCodes.map(async (code) => {
+          try {
+            const rawText = await fetchWork24Raw(authKey, {
+              startPage: 1,
+              display: perCode,
+              region: code,
+            });
+            return { code, rawText };
+          } catch {
+            return { code, rawText: null };
+          }
+        }),
+      );
+
+      const seen = new Set();
+      const matched = [];
+      for (const { code, rawText } of responses) {
+        if (!rawText) {
+          regionDebug.push({ code, count: 0, error: 'fetch 실패' });
+          continue;
+        }
         const parsed = parseWork24Jobs(rawText);
         if (parsed.error) {
-          return jsonResponse({ total: 0, items: [], error: parsed.error }, 200);
+          regionDebug.push({ code, count: 0, error: parsed.error });
+          continue;
         }
+        regionDebug.push({ code, count: parsed.items.length });
         for (const job of parsed.items) {
-          if (job.location.includes(regionKeyword)) matched.push(job);
+          if (seen.has(job.id)) continue;
+          seen.add(job.id);
+          matched.push(job);
         }
       }
 
-      return jsonResponse(
-        { total: matched.length, items: matched.slice(0, display) },
-        200,
-        { 'Cache-Control': 'public, max-age=20' },
-      );
+      const body = { total: matched.length, items: matched.slice(0, display) };
+      // ?debug=1 을 붙이면 코드별로 몇 건씩 나왔는지 볼 수 있습니다 (원인 확인용).
+      if (debug) body._regionDebug = regionDebug;
+
+      return jsonResponse(body, 200, { 'Cache-Control': 'public, max-age=20' });
     }
 
     const rawText = await fetchWork24Raw(authKey, { startPage, display, keyword });
@@ -101,7 +132,7 @@ async function handleJobs(url, env) {
   }
 }
 
-async function fetchWork24Raw(authKey, { startPage, display, keyword }) {
+async function fetchWork24Raw(authKey, { startPage, display, keyword, region }) {
   const apiUrl = new URL(WORK24_LIST_URL);
   apiUrl.searchParams.set('authKey', authKey);
   apiUrl.searchParams.set('callTp', 'L');
@@ -109,6 +140,7 @@ async function fetchWork24Raw(authKey, { startPage, display, keyword }) {
   apiUrl.searchParams.set('startPage', String(startPage));
   apiUrl.searchParams.set('display', String(display));
   if (keyword) apiUrl.searchParams.set('keyword', keyword);
+  if (region) apiUrl.searchParams.set('region', region);
 
   const upstream = await fetch(apiUrl.toString(), {
     headers: { Accept: 'application/xml, text/xml' },
