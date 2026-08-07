@@ -73,7 +73,8 @@ async function handleJobs(url, env) {
       const responses = await Promise.all(
         regionCodes.map(async (code) => {
           try {
-            const items = await fetchAllJobsForRegionCode(authKey, code, 300);
+            // 상한을 두지 않고 실제 등록된 공고를 끝까지 다 가져옵니다.
+            const items = await fetchAllJobsForRegionCode(authKey, code);
             return { code, items };
           } catch (err) {
             return { code, items: [], fetchError: String(err) };
@@ -143,14 +144,15 @@ async function fetchWork24Raw(authKey, { startPage, display, keyword, region }) 
   return text;
 }
 
-// 지역코드 하나에 대해, 여러 페이지(최대 100건씩)를 이어서 호출해 가능한 한
-// 전체 공고를 다 모읍니다. maxItems는 안전장치(과도한 API 호출 방지)입니다.
-async function fetchAllJobsForRegionCode(authKey, code, maxItems) {
+// 지역코드 하나에 대해, 여러 페이지(100건씩)를 이어서 호출해 등록된 공고를
+// 상한 없이 끝까지 다 가져옵니다. (무한루프 방지용 하드 안전장치만 둡니다)
+async function fetchAllJobsForRegionCode(authKey, code) {
   const perPage = 100;
+  const HARD_SAFETY_LIMIT = 5000; // API가 이상 동작할 때의 최후 안전장치일 뿐, 평소엔 걸릴 일 없음
   let page = 1;
   const collected = [];
 
-  while (collected.length < maxItems) {
+  while (collected.length < HARD_SAFETY_LIMIT) {
     const rawText = await fetchWork24Raw(authKey, { startPage: page, display: perPage, region: code });
     const parsed = parseWork24Jobs(rawText);
     if (parsed.error || parsed.items.length === 0) break;
@@ -163,7 +165,7 @@ async function fetchAllJobsForRegionCode(authKey, code, maxItems) {
     page++;
   }
 
-  return collected.slice(0, maxItems);
+  return collected;
 }
 
 // ---------------------------------------------------------------------------
