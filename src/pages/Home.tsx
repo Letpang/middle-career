@@ -1,6 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { Briefcase, GraduationCap, MessageCircle, UserCheck, ArrowRight, Award, Compass, Heart, MapPin, ExternalLink } from 'lucide-react';
+import { Briefcase, GraduationCap, MessageCircle, UserCheck, ArrowRight, Award, Compass, Heart, MapPin, ExternalLink, Building2, Phone, Clock } from 'lucide-react';
 import { fetchWork24Jobs, type Work24Job } from '../lib/work24';
+
+interface JiwonCenter {
+  region: string;
+  centerName: string;
+  address: string;
+  phone: string;
+  hours: string;
+}
+
+const JIWON_CENTERS: JiwonCenter[] = [
+  {
+    region: '고양',
+    centerName: '고양상공회의소 중장년내일센터',
+    address: '경기도 고양시 일산동구 고봉로 32-16, 고양고용복지+센터 1층',
+    phone: '031-901-9197',
+    hours: '평일 09:00 ~ 18:00',
+  },
+  {
+    region: '파주',
+    centerName: '파주상공회의소 중장년내일센터',
+    address: '파주시 중앙로328 MH타워8층(파주고용복지플러스센터 내)',
+    phone: '031-8071-4245',
+    hours: '평일 09:00 ~ 17:30',
+  },
+];
 
 interface HomeProps {
   setActiveTab: (tab: string) => void;
@@ -197,6 +222,41 @@ const Home: React.FC<HomeProps> = ({ setActiveTab }) => {
           </div>
         </section>
       )}
+
+      {/* 중장년내일센터 안내 */}
+      <section style={{ padding: '20px 0 60px' }}>
+        <div className="container">
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <h2 className="section-title">우리 지역 중장년내일센터</h2>
+            <p className="section-desc">가까운 센터에 직접 방문하거나 전화로 상담받으실 수 있어요</p>
+          </div>
+
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+            {JIWON_CENTERS.map((center) => (
+              <div className="card" key={center.region} style={{ flexDirection: 'row', gap: '16px', alignItems: 'flex-start' }}>
+                <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)' }}>
+                  <Building2 size={22} />
+                </div>
+                <div style={{ flex: '1 1 auto' }}>
+                  <span className="badge badge-secondary" style={{ marginBottom: '8px' }}>{center.region}</span>
+                  <h3 style={{ fontSize: '1.05rem', marginTop: '6px', marginBottom: '10px' }}>{center.centerName}</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <MapPin size={14} /> {center.address}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Phone size={14} /> {center.phone}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Clock size={14} /> {center.hours}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Values Section */}
       <section style={{ padding: '60px 0', backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>

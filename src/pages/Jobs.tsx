@@ -3,8 +3,11 @@ import { Search, MapPin, DollarSign, Filter, ExternalLink, RefreshCw } from 'luc
 import { fetchWork24Jobs, type Work24Job } from '../lib/work24';
 import { JOB_REFERENCE_SITES } from '../lib/externalSites';
 
+const REGIONS = ['전체', '고양', '파주', '김포'];
+
 const Jobs: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string>('전체');
+  const [selectedRegion, setSelectedRegion] = useState<string>('전체');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -12,11 +15,16 @@ const Jobs: React.FC = () => {
   const [total, setTotal] = useState<number>(0);
   const isFirstRun = useRef(true);
 
-  const loadJobs = (keyword?: string) => {
+  const loadJobs = (opts: { keyword?: string; region?: string } = {}) => {
     setLoading(true);
     setError(undefined);
 
-    fetchWork24Jobs({ display: 30, keyword })
+    const params =
+      opts.region && opts.region !== '전체'
+        ? { regionKeyword: opts.region, display: 30 }
+        : { keyword: opts.keyword, display: 30 };
+
+    fetchWork24Jobs(params)
       .then((data) => {
         if (data.error) {
           setError(data.error);
@@ -43,17 +51,25 @@ const Jobs: React.FC = () => {
 
   // 검색어 입력 시: 화면에 이미 불러온 30건 안에서만 찾지 않고,
   // 고용24 전체 데이터(6만여 건)에서 다시 검색합니다. (입력 후 500ms 뒤 자동 검색)
+  // 지역 필터가 켜져 있을 때는 검색어 대신 지역 기준으로만 조회합니다.
   useEffect(() => {
     if (isFirstRun.current) {
       isFirstRun.current = false;
       return;
     }
+    if (selectedRegion !== '전체') return;
     const timer = setTimeout(() => {
-      loadJobs(searchQuery.trim() || undefined);
+      loadJobs({ keyword: searchQuery.trim() || undefined });
     }, 500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
+
+  const handleRegionSelect = (region: string) => {
+    setSelectedRegion(region);
+    setSearchQuery('');
+    loadJobs({ region });
+  };
 
   const jobTypes = useMemo(() => {
     const uniqueTypes = Array.from(new Set(jobs.map((job) => job.type).filter(Boolean)));
@@ -68,7 +84,7 @@ const Jobs: React.FC = () => {
         <div className="container">
           <h1 className="page-title">중장년 맞춤 일자리</h1>
           <p className="page-subtitle">
-            고용24 오픈API와 실시간 연동된 채용정보입니다. 단순 업무부터 과거의 커리어 역량을 발휘할 수 있는 전문적인 일자리까지 찾아보세요.
+            고용24 오픈API와 실시간 연동된 채용정보입니다. 전국 채용정보는 물론, 고양·파주·김포 지역 일자리도 바로 찾아보세요.
             {!loading && !error && total > 0 && <> (전체 {total.toLocaleString()}건)</>}
           </p>
         </div>
@@ -87,15 +103,38 @@ const Jobs: React.FC = () => {
           border: '1px solid var(--border-color)',
           boxShadow: 'var(--card-shadow)'
         }}>
+          {/* 지역 필터 */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <MapPin size={18} style={{ color: 'var(--text-secondary)', marginRight: '4px' }} />
+            {REGIONS.map(region => (
+              <button
+                key={region}
+                onClick={() => handleRegionSelect(region)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  backgroundColor: selectedRegion === region ? 'var(--primary)' : 'var(--bg-tertiary)',
+                  color: selectedRegion === region ? '#ffffff' : 'var(--text-secondary)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {region}
+              </button>
+            ))}
+          </div>
+
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: '1 1 300px' }}>
               <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={18} />
               <input
                 type="text"
-                placeholder="직무명, 기업명, 지역을 검색하세요..."
+                placeholder={selectedRegion === '전체' ? '직무명, 기업명, 지역을 검색하세요...' : `'전체' 지역을 선택하면 검색할 수 있어요`}
                 style={{ width: '100%', paddingLeft: '40px' }}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                disabled={selectedRegion !== '전체'}
               />
             </div>
 
@@ -135,7 +174,11 @@ const Jobs: React.FC = () => {
             <p style={{ color: 'var(--danger)', fontSize: '1.05rem', marginBottom: '16px' }}>
               채용정보를 불러오지 못했습니다. ({error})
             </p>
-            <button className="btn btn-secondary" onClick={() => loadJobs(searchQuery.trim() || undefined)} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => loadJobs(selectedRegion !== '전체' ? { region: selectedRegion } : { keyword: searchQuery.trim() || undefined })}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
               <RefreshCw size={16} /> 다시 시도
             </button>
           </div>

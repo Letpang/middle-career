@@ -3,11 +3,10 @@ import './App.css';
 import Home from './pages/Home';
 import Education from './pages/Education';
 import Jobs from './pages/Jobs';
-import Region from './pages/Region';
 import Profile from './pages/Profile';
 import Counseling from './pages/Counseling';
 import ChatWidget from './components/ChatWidget';
-import { Home as HomeIcon, GraduationCap, Briefcase, MapPin, User, Link2, MessageCircle, Minus, Plus } from 'lucide-react';
+import { Home as HomeIcon, GraduationCap, Briefcase, User, Link2, MessageCircle, Minus, Plus } from 'lucide-react';
 
 type FontLevel = 0 | 1 | 2;
 const FONT_SIZES: Record<FontLevel, string> = { 0: '16px', 1: '18px', 2: '20px' };
@@ -29,8 +28,6 @@ function App() {
         return <Education />;
       case 'jobs':
         return <Jobs />;
-      case 'region':
-        return <Region />;
       case 'counseling':
         return <Counseling />;
       case 'profile':
@@ -71,13 +68,6 @@ function App() {
             >
               <GraduationCap size={18} />
               <span>교육</span>
-            </button>
-            <button
-              className={`nav-item ${activeTab === 'region' ? 'active' : ''}`}
-              onClick={() => setActiveTab('region')}
-            >
-              <MapPin size={18} />
-              <span>지역</span>
             </button>
             <button
               className={`nav-item ${activeTab === 'counseling' ? 'active' : ''}`}

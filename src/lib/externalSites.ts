@@ -25,6 +25,13 @@ export const JOB_REFERENCE_SITES: ExternalSiteGroup[] = [
     ],
   },
   {
+    category: '공공·사회활동형 시니어 일자리',
+    sites: [
+      { name: '노인일자리여기', url: 'https://www.seniorro.or.kr/', desc: '한국노인인력개발원 운영, 60세 이상 공공형·사회서비스형·시장형 일자리 통합검색' },
+      { name: '경기도 노인일자리지원센터', url: 'https://www.ggseniorjob.or.kr/', desc: '경기도(고양·파주·김포 포함) 노인일자리 사업 안내' },
+    ],
+  },
+  {
     category: '요양보호사·간병·간호',
     sites: [
       { name: '너스잡', url: 'https://www.nursejob.co.kr/', desc: '간호사·간호조무사·요양보호사 전문' },
