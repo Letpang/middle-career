@@ -59,12 +59,16 @@ export const EDUCATION_REFERENCE_SITES: ExternalSiteGroup[] = [
     sites: [
       { name: '고양시 평생학습포털', url: 'https://www.goyang.go.kr/edu/index.do', desc: '평생학습 강좌 안내 및 신청' },
       { name: '고양시 신중년대학', url: 'https://www.goyang.go.kr/edu/M000050/S001/conts.do', desc: '50~65세 대상, 관내 대학 연계 특화과정' },
+      { name: '국제대학교 평생교육원', url: 'https://dept.kookje.ac.kr/lifelong/', desc: '고양시 소재 대학 평생교육원' },
+      { name: '고양여성인력개발센터(새일센터)', url: 'https://www.kycenter.or.kr/', desc: '경력단절 여성 재취업 상담·훈련·인턴십' },
     ],
   },
   {
     category: '파주시',
     sites: [
       { name: '파주시 평생교육포털', url: 'https://lll.paju.go.kr/', desc: '평생학습관 강좌 일정 및 신청' },
+      { name: '두원공과대학교 파주캠퍼스 평생교육원', url: 'https://www.doowon.ac.kr/', desc: '파주 소재 대학 평생교육원 (031-935-7114)' },
+      { name: '파주새일센터', url: 'https://saeil.mogef.go.kr/', desc: '여성새로일하기센터, 재취업 상담·훈련 (031-942-0281)' },
     ],
   },
   {
@@ -72,6 +76,7 @@ export const EDUCATION_REFERENCE_SITES: ExternalSiteGroup[] = [
     sites: [
       { name: '김포시 평생교육 통합 플랫폼', url: 'https://gimpo.gseek.kr/', desc: '취업·창업자격증 등 62개 정규강좌' },
       { name: '김포대학교 평생교육원', url: 'https://cec.ukp.ac.kr/', desc: '대학 연계 평생교육 프로그램' },
+      { name: '김포새일센터', url: 'https://gimpo.go.kr/portal/contents.do?key=1274', desc: '여성새로일하기센터, 재취업 상담·훈련 (031-996-7607)' },
     ],
   },
 ];
